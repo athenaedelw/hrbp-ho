@@ -1,0 +1,8 @@
+{
+  "name": "HRBP Nusaraya Executive Dashboard - Head Office",
+  "description": "Interactive executive dashboard and reporting system for HRBP Nusaraya (Head Office Only) and its entities (KNC, SMS, SST, SWK, PSM, IIM, SNB) featuring headcount analytics, turnover rates, recruitment, training, contract monitoring, and one-click PDF & PowerPoint exports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

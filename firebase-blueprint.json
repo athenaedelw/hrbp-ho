@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "DashboardState": {
+      "title": "DashboardState",
+      "description": "Complete consolidated and per-entity HRBP Nusaraya dashboard state",
+      "type": "object",
+      "properties": {
+        "years": {
+          "type": "array",
+          "description": "Configured dashboard years"
+        },
+        "activeYear": {
+          "type": "number",
+          "description": "Selected year"
+        },
+        "activeMonth": {
+          "type": "number",
+          "description": "Selected month index 0-11"
+        },
+        "activeEntity": {
+          "type": "string",
+          "description": "Selected active entity filter"
+        },
+        "entities": {
+          "type": "array",
+          "description": "Configured entity list with names and colors"
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Custom HRBP Nusaraya logo base64 or URL"
+        },
+        "data": {
+          "type": "object",
+          "description": "Map of year to month report datasets"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of last update"
+        }
+      },
+      "required": ["years", "activeYear", "activeMonth", "activeEntity", "entities", "data"]
+    }
+  },
+  "firestore": {
+    "/dashboardState/{docId}": {
+      "schema": "DashboardState",
+      "description": "Dynamic cloud storage for HRBP Nusaraya dashboard data"
+    }
+  }
+}
