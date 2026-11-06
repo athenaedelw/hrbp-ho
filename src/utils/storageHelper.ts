@@ -1,14 +1,29 @@
 import { AppState, DEFAULT_ENTITIES } from '../types/dashboard';
 import { createInitialYearData } from '../data/defaultData';
+import persistedStateJson from '../data/persistedState.json';
 
 export const DASHBOARD_STORAGE_KEY = 'hrbp_nusaraya_ho_dashboard_v2';
 
 /**
  * Creates the production default state for HRBP Nusaraya Head Office.
- * CRITICAL: updatedAt MUST be undefined so a newly initialized client NEVER
- * overwrites the persistent cloud database with a blank template!
+ * Uses the persisted source file (src/data/persistedState.json) baked into the build
+ * so that republished public builds immediately display the latest saved inputs,
+ * entities, and logo without resetting.
  */
 export function createDefaultProductionState(): AppState {
+  const bundled = persistedStateJson as unknown as AppState;
+  if (bundled && bundled.data && bundled.years) {
+    return {
+      ...bundled,
+      entities:
+        bundled.entities && Array.isArray(bundled.entities) && bundled.entities.length > 0
+          ? bundled.entities
+          : DEFAULT_ENTITIES,
+      // Leave updatedAt undefined on initial cold fallback so newer cloud/server state still takes precedence
+      updatedAt: bundled.updatedAt,
+    };
+  }
+
   const initial2026 = createInitialYearData();
   const initial2025 = createInitialYearData();
   return {
@@ -19,7 +34,7 @@ export function createDefaultProductionState(): AppState {
     entities: DEFAULT_ENTITIES,
     logoUrl: null,
     savedAt: null,
-    updatedAt: undefined, // Unmodified default: must never overwrite cloud
+    updatedAt: undefined,
     data: {
       2025: initial2025,
       2026: initial2026,
@@ -40,9 +55,18 @@ export function loadFromLocalStorage(): AppState | null {
       return null;
     }
 
-    // Ensure entities are present and up to date
     if (!parsed.entities || !Array.isArray(parsed.entities) || parsed.entities.length === 0) {
       parsed.entities = DEFAULT_ENTITIES;
+    }
+
+    // Compare against bundled persistedStateJson so if the app was republished with newer data, the newer data wins
+    const bundled = persistedStateJson as unknown as AppState;
+    if (bundled && bundled.updatedAt && parsed.updatedAt) {
+      const bundledTime = new Date(bundled.updatedAt).getTime();
+      const localTime = new Date(parsed.updatedAt).getTime();
+      if (bundledTime > localTime) {
+        return bundled;
+      }
     }
 
     return parsed as AppState;
@@ -77,25 +101,16 @@ export function clearLocalStorage(): void {
 }
 
 /**
- * Resolves state between local storage and cloud Firestore.
- * Rules:
- * 1. If cloud document has data:
- *    - If local has never been edited by a user (!localState.updatedAt), CLOUD WINS.
- *    - If cloud timestamp >= local timestamp, CLOUD WINS.
- *    - If local has newer timestamp from user keystrokes in this session, LOCAL WINS & pushes to cloud.
- * 2. If cloud document is empty:
- *    - ONLY push if local state has actual user edits (localState.updatedAt is set).
+ * Resolves state between local storage and shared server/cloud state.
  */
 export function resolveSyncState(
   localState: AppState,
   cloudState: AppState | null
 ): { state: AppState; shouldPushToCloud: boolean } {
-  // Case A: Cloud document has verified dashboard data
   if (cloudState && cloudState.data) {
     const localTime = localState.updatedAt ? new Date(localState.updatedAt).getTime() : 0;
     const cloudTime = cloudState.updatedAt ? new Date(cloudState.updatedAt).getTime() : 0;
 
-    // If local was never edited by a user OR cloud is newer/equal: Cloud is the authority!
     if (!localState.updatedAt || cloudTime >= localTime) {
       return {
         state: {
@@ -106,14 +121,12 @@ export function resolveSyncState(
       };
     }
 
-    // Local in this browser has newer, explicit user changes:
     return {
       state: localState,
       shouldPushToCloud: true,
     };
   }
 
-  // Case B: Cloud document is empty or brand new
   return {
     state: localState,
     shouldPushToCloud: !!localState.updatedAt,

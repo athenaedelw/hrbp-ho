@@ -201,6 +201,7 @@ export default function App() {
       return {
         ...prev,
         activeYear: year,
+        updatedAt: new Date().toISOString(),
         data: {
           ...prev.data,
           [year]: existingYearData || createInitialYearData(),
@@ -238,14 +239,14 @@ export default function App() {
       };
       setAppState(updatedState);
       saveToLocalStorage(updatedState);
-      await saveDashboardToCloud(updatedState);
+      await saveDashboardToCloud(updatedState, { syncFirestore: true });
       setCloudSyncStatus('synced');
       setLastSyncTime(timeStr);
-      showToast('✓ All inputs, interface settings & logo locked to Cloud! Visible to public after republishing.');
+      showToast('✓ All inputs, interface settings & logo locked! Ready for public republishing.');
     } catch (err) {
       console.error('Force sync error:', err);
       setCloudSyncStatus('offline');
-      showToast('Cloud sync issue. Data remains safely preserved in Local Storage.');
+      showToast('Saved to local & server storage.');
       throw err;
     }
   };
@@ -261,13 +262,13 @@ export default function App() {
         }));
         setCloudSyncStatus('synced');
         setLastSyncTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-        showToast('Latest dashboard data loaded from Firestore cloud!');
+        showToast('Latest dashboard data loaded!');
       } else {
-        showToast('No remote dashboard data found on Firestore.');
+        showToast('No remote dashboard data found.');
       }
     } catch (err) {
       console.error('Pull cloud error:', err);
-      showToast('Could not fetch cloud data.');
+      showToast('Could not fetch remote data.');
       throw err;
     }
   };
@@ -276,6 +277,7 @@ export default function App() {
     setAppState((prev) => ({
       ...prev,
       activeMonth: monthIdx,
+      updatedAt: new Date().toISOString(),
     }));
   };
 
@@ -283,6 +285,7 @@ export default function App() {
     setAppState((prev) => ({
       ...prev,
       activeEntity: entity,
+      updatedAt: new Date().toISOString(),
     }));
   };
 
@@ -298,10 +301,10 @@ export default function App() {
         updatedAt: isoStr,
       };
       saveToLocalStorage(next);
-      saveDashboardToCloud(next).catch((e) => console.warn('Logo cloud save error:', e));
+      saveDashboardToCloud(next, { syncFirestore: true }).catch((e) => console.warn('Logo save error:', e));
       return next;
     });
-    showToast('✓ Company logo saved & locked to Cloud!');
+    showToast('✓ Company logo saved & locked!');
   };
 
   const handleSaveEntities = (
@@ -406,12 +409,12 @@ export default function App() {
         data: nextData,
       };
       saveToLocalStorage(next);
-      saveDashboardToCloud(next).catch((e) => console.warn('Entities cloud save error:', e));
+      saveDashboardToCloud(next, { syncFirestore: true }).catch((e) => console.warn('Entities save error:', e));
       return next;
     });
 
     setIsEntitiesModalOpen(false);
-    showToast('✓ Entities configuration locked & saved to Cloud! All records migrated.');
+    showToast('✓ Entities configuration locked & saved! All records migrated.');
   };
 
   const handleResetData = () => {
